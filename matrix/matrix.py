@@ -67,10 +67,10 @@ class Matrix(list):
         for j in range(1, self.shape[1] + 1):
             for i in range(j + 1, self.shape[0] + 1):
                 binder = Fraction(_new_matrix._body[i - 1][j - 1], _new_matrix._body[j - 1][j - 1])
-                binder = binder * -1 if _new_matrix._body[i - 1][j - 1] * _new_matrix._body[j - 1][
-                    j - 1] > 0 else binder
+                binder = binder * -1
                 _new_matrix = _new_matrix[:i].append(_new_matrix[j] * binder + _new_matrix[i]).append(
                     _new_matrix[i + 1:])
+                print(_new_matrix)
         return _new_matrix
 
     def get_algebraic_completion(self, position: Tuple[int, int]):

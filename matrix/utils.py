@@ -11,8 +11,10 @@ def solve_with_Haus_method(A: Matrix, b: Matrix) -> Matrix:
     A_tr = A.copy().append(b, axis=1).to_triangle()
     assert A_tr.rank == A.rank, 'Rank matrix don`t match, no solutions'
     # A_tr = A_tr[:, :A_tr.shape[1]]
-    # print(A_tr)
+    print(A_tr)
     for i in range(A_tr.shape[0], 0, -1):
+        if sum(list(A_tr[i])[0]) == 0:
+            continue
         y = list(A_tr[i, A_tr.shape[1]])[0][0]
         for n, x in enumerate(_x):
             y -= x * list(A_tr[i, A_tr.shape[1] - 1 - n])[0][0]
@@ -41,17 +43,26 @@ def solve_with_matrix_transformation(A, b):
 
 
 if __name__ == '__main__':
-    A = Matrix([[2, -1, 0], [1, 2, -1], [0, 1, 1]])
+    A = Matrix([
+        [2, 5, -8, 1],
+        [4, 3, -9, 1],
+        [2, 3, -5, 2],
+        [1, 8, -7, 1],
+    ])
     print(A)
+    # print(A.to_triangle())
 
-    b = Matrix([[1], [2], [2]])
+    b = Matrix([[8],
+                [9],
+                [7],
+                [12]])
     print(b)
 
     x = solve_with_Haus_method(A, b)
     print(x)
 
-    x = solve_with_Kramer(A, b)
-    print(x)
-
-    x = solve_with_matrix_transformation(A, b)
-    print(x)
+    # x = solve_with_Kramer(A, b)
+    # print(x)
+    #
+    # x = solve_with_matrix_transformation(A, b)
+    # print(x)
