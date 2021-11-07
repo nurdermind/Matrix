@@ -1,5 +1,8 @@
 from copy import deepcopy
+from fractions import Fraction
 from typing import Union, Tuple
+
+from tabulate import tabulate
 
 
 class Matrix(list):
@@ -7,7 +10,7 @@ class Matrix(list):
     The matrix
     """
 
-    def __init__(self, body: Union[int, list]):
+    def __init__(self, body: Union[int, list], limit_denominator=20):
         super(Matrix, self).__init__()
         if type(body) is int:
             self._body = [[body]]
@@ -16,6 +19,7 @@ class Matrix(list):
         else:
             self._body = deepcopy(body)
         self._determinant = None
+        self._limit_denominator = limit_denominator
 
     @property
     def shape(self) -> Tuple[int, int]:
@@ -74,9 +78,24 @@ class Matrix(list):
                 _new_matrix._body[i][j] = foo(self._body[i][j])
         return _new_matrix
 
+    def append(self, other: 'Matrix', axis=0) -> 'Matrix':
+        assert axis in (0, 1), 'axis must be 0 or 1'
+        if axis == 0:
+            assert self.shape[0] == other.shape[0], 'The number of lines must match'
+            _other_matrix = Matrix(deepcopy(other._body))
+            for i in range(self.shape[0]):
+                self._body[i] += other._body[i]
+        elif axis == 1:
+            assert self.shape[1] == other.shape[1], 'The number of column must match'
+            self._body += deepcopy(other._body)
+        return self
+
+    def __iter__(self):
+        self.__iter = iter(self._body)
+        return self
+
     def __next__(self):
-        for item in self._body:
-            yield item
+        return next(self.__iter)
 
     def __add__(self, other: Union['Matrix', int, float]):
         _new_matrix = Matrix(deepcopy(self._body))
@@ -95,18 +114,18 @@ class Matrix(list):
         return self + (other * -1)
 
     def __mul__(self, other: Union['Matrix', int]):
-        if type(other) in (int, float):
+        if type(other) in (int, float, Fraction):
             _new_matrix = Matrix(deepcopy(self._body))
             for i in range(self.shape[0]):
                 for j in range(self.shape[1]):
-                    _new_matrix._body[i][j] = self._body[i][j] * other
+                    _new_matrix._body[i][j] = self._body[i][j] * Fraction(other)
             return _new_matrix
         elif self.shape[1] == other.shape[0]:
             _new_matrix = Matrix([[0 for _ in range(other.shape[1])] for _ in range(self.shape[0])])
             for i in range(_new_matrix.shape[0]):
                 for j in range(_new_matrix.shape[1]):
                     for k in range(self.shape[1]):
-                        _new_matrix._body[i][j] += self._body[i][k] * other._body[k][j]
+                        _new_matrix._body[i][j] += self._body[i][k] * Fraction(other._body[k][j])
 
             return _new_matrix
 
@@ -122,7 +141,7 @@ class Matrix(list):
             for i in range(self.shape[0]):
                 for j in range(self.shape[1]):
                     _new_matrix._body[i][j] = self.get_algebraic_completion((i + 1, j + 1))
-            return _new_matrix.T * (1 / self.determinant)
+            return _new_matrix.T * Fraction(1, self.determinant)
 
     def __len__(self):
         return len(self._body)
@@ -174,8 +193,15 @@ class Matrix(list):
         self._body[key - 1] = value
 
     def __str__(self):
-        return '\n'.join((str(i) for i in self._body))
+        # s = ''
+        # for row in self._body:
+        #     s += '[ '
+        #     for item in row:
+        #         s += f"{item} "
+        #     s += ']\n'
+        return tabulate([[str(item) for item in row] for row in self._body], tablefmt='fancy_grid', )
         # return str(self._body)
+        return s
 
     def __repr__(self):
         return str(self._body)
@@ -198,23 +224,23 @@ if __name__ == '__main__':
     print('m.shape')  # (4, 4)
     print(m.shape)  # (4, 4)
 
-    print('-'*100)
+    print('-' * 100)
     print('m[1]')  # [7, 2, 4, 9]
     print(m[1])  # [7, 2, 4, 9]
 
-    print('-'*100)
+    print('-' * 100)
     print('Срез от 1 строки до конца, от 2 столбца до 4 строки (не включительно)')
     print(m[:3, 2:4])  # [[9, 5] , [2, 3]]
 
-    print('-'*100)
+    print('-' * 100)
     print('m.determinant')  # -142
     print(m.determinant)  # -142
 
-    print('-'*100)
+    print('-' * 100)
     print('m + 2')
     print(m + 2)
 
-    print('-'*100)
+    print('-' * 100)
     print('m + m')
     print(m + m)
 
@@ -226,34 +252,34 @@ if __name__ == '__main__':
     print('m - m')
     print(m - m)
 
-    print('-'*100)
-    print('Обратная матрица округленная до сотых')
-    print((m ** -1).apply(lambda x: round(x, 2)))
+    print('-' * 100)
+    print('Обратная матрица')
+    print((m ** -1))
 
-    print('-'*100)
+    print('-' * 100)
     print('m^-1 * m')
-    print((m * (m ** -1)).apply(lambda x: round(x)))
+    print((m * (m ** -1)))
 
-    print('-'*100)
+    print('-' * 100)
     print('m ^ 3')
     print((m ** 3))
 
-    print('-'*100)
+    print('-' * 100)
     print('m * 2')
     print(m * 2)
 
-    print('-'*100)
+    print('-' * 100)
     print('m * n')
     print(m * n)
 
-    print('-'*100)
+    print('-' * 100)
     print('Транспонирование')
     print(m.T)
 
-    print('-'*100)
+    print('-' * 100)
     print('Минор 2 строка, 3 столбец')
     print(m.get_minor((2, 3)))
 
-    print('-'*100)
+    print('-' * 100)
     print('Алгебраическое дополнение 2 строка, 3 столбец')
     print(m.get_algebraic_completion((2, 3)))
