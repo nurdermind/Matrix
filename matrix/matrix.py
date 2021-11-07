@@ -10,16 +10,14 @@ class Matrix(list):
     The matrix
     """
 
-    def __init__(self, body: Union[int, list], limit_denominator=20):
+    def __init__(self, body: Union[int, list]):
         super(Matrix, self).__init__()
         if type(body) is int:
             self._body = [[body]]
-        elif body and type(body[0]) is int:
+        elif body and type(body[0]) in (float, int, Fraction):
             self._body = [deepcopy(body)]
         else:
             self._body = deepcopy(body)
-        self._determinant = None
-        self._limit_denominator = limit_denominator
 
     @property
     def shape(self) -> Tuple[int, int]:
@@ -29,8 +27,6 @@ class Matrix(list):
 
     @property
     def determinant(self):
-        if self._determinant:
-            return self._determinant
         assert self.shape[0] - self.shape[1] == 0, 'Matrix must be square'
         if self.shape == (1, 1):
             return self._body[0][0]
@@ -40,6 +36,16 @@ class Matrix(list):
             a_dop = self.get_algebraic_completion((1, j))
             _determinant += a * a_dop
         return _determinant
+
+    @property
+    def rank(self) -> int:
+        _rank = 0
+        for row in self.to_triangle():
+            for n in row:
+                if n != 0:
+                    _rank += 1
+                    break
+        return _rank
 
     def get_minor(self, position: Tuple[int, int]) -> float:
         _new_matrix = Matrix([[0 for _ in range(self.shape[1] - 1)] for _ in range(self.shape[0] - 1)])
@@ -56,12 +62,23 @@ class Matrix(list):
 
         return _new_matrix.determinant
 
+    def to_triangle(self) -> 'Matrix':
+        _new_matrix = self.copy()
+        for j in range(1, self.shape[1] + 1):
+            for i in range(j + 1, self.shape[0] + 1):
+                binder = Fraction(_new_matrix._body[i - 1][j - 1], _new_matrix._body[j - 1][j - 1])
+                binder = binder * -1 if _new_matrix._body[i - 1][j - 1] * _new_matrix._body[j - 1][
+                    j - 1] > 0 else binder
+                _new_matrix = _new_matrix[:i].append(_new_matrix[j] * binder + _new_matrix[i]).append(
+                    _new_matrix[i + 1:])
+        return _new_matrix
+
     def get_algebraic_completion(self, position: Tuple[int, int]):
         i, j = position
         return (-1) ** (i + j) * self.get_minor(position)
 
     @property
-    def T(self):
+    def T(self) -> 'Matrix':
         _new_matrix = Matrix(deepcopy(self._body))
         for i in range(_new_matrix.shape[0]):
             for j in range(_new_matrix.shape[1]):
@@ -71,7 +88,7 @@ class Matrix(list):
                     _new_matrix._body[j][i], _new_matrix._body[i][j]
         return _new_matrix
 
-    def apply(self, foo):
+    def apply(self, foo) -> 'Matrix':
         _new_matrix = Matrix(deepcopy(self._body))
         for i in range(_new_matrix.shape[0]):
             for j in range(_new_matrix.shape[1]):
@@ -79,16 +96,21 @@ class Matrix(list):
         return _new_matrix
 
     def append(self, other: 'Matrix', axis=0) -> 'Matrix':
+        if 0 in other.shape:
+            return self
         assert axis in (0, 1), 'axis must be 0 or 1'
-        if axis == 0:
+        if axis == 1:
             assert self.shape[0] == other.shape[0], 'The number of lines must match'
             _other_matrix = Matrix(deepcopy(other._body))
             for i in range(self.shape[0]):
                 self._body[i] += other._body[i]
-        elif axis == 1:
+        elif axis == 0:
             assert self.shape[1] == other.shape[1], 'The number of column must match'
             self._body += deepcopy(other._body)
         return self
+
+    def copy(self) -> 'Matrix':
+        return Matrix(self._body)
 
     def __iter__(self):
         self.__iter = iter(self._body)
@@ -97,7 +119,7 @@ class Matrix(list):
     def __next__(self):
         return next(self.__iter)
 
-    def __add__(self, other: Union['Matrix', int, float]):
+    def __add__(self, other: Union['Matrix', int, float]) -> 'Matrix':
         _new_matrix = Matrix(deepcopy(self._body))
         if type(other) in (int, float):
             for i in range(self.shape[0]):
@@ -110,10 +132,10 @@ class Matrix(list):
                     _new_matrix._body[i][j] = self._body[i][j] + other._body[i][j]
         return _new_matrix
 
-    def __sub__(self, other):
+    def __sub__(self, other) -> 'Matrix':
         return self + (other * -1)
 
-    def __mul__(self, other: Union['Matrix', int]):
+    def __mul__(self, other: Union['Matrix', int]) -> 'Matrix':
         if type(other) in (int, float, Fraction):
             _new_matrix = Matrix(deepcopy(self._body))
             for i in range(self.shape[0]):
@@ -129,7 +151,7 @@ class Matrix(list):
 
             return _new_matrix
 
-    def __pow__(self, power, modulo=None):
+    def __pow__(self, power, modulo=None) -> 'Matrix':
         _new_matrix = Matrix([[1 if i == j else 0 for j in range(self.shape[1])] for i in range(self.shape[0])])
         if power >= 0:
             for _ in range(power):
@@ -146,7 +168,7 @@ class Matrix(list):
     def __len__(self):
         return len(self._body)
 
-    def __getitem__(self, val: Union[int, slice, tuple]):
+    def __getitem__(self, val: Union[int, slice, tuple]) -> 'Matrix':
         # print(val)
         _res = None
         if type(val) is tuple and len(val) == 2:
@@ -200,8 +222,6 @@ class Matrix(list):
         #         s += f"{item} "
         #     s += ']\n'
         return tabulate([[str(item) for item in row] for row in self._body], tablefmt='fancy_grid', )
-        # return str(self._body)
-        return s
 
     def __repr__(self):
         return str(self._body)
@@ -213,6 +233,11 @@ if __name__ == '__main__':
         [4, 2, 3, 7],
         [7, 2, 4, 9],
         [8, 1, 4, 2]
+    ])
+    k = Matrix([
+        [1, 2, 3],
+        [4, 5, 6],
+        [2, 1, 0]
     ])
     n = Matrix([
         [1, 2],
@@ -283,3 +308,12 @@ if __name__ == '__main__':
     print('-' * 100)
     print('Алгебраическое дополнение 2 строка, 3 столбец')
     print(m.get_algebraic_completion((2, 3)))
+
+    print('-' * 100)
+    print('Приведение к треугольному виду')
+    print(m.to_triangle())
+
+    print('-' * 100)
+    print('Ранг матрицы')
+    print(k.rank)
+
