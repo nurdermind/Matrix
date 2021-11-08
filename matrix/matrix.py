@@ -70,7 +70,7 @@ class Matrix(list):
                 binder = binder * -1
                 _new_matrix = _new_matrix[:i].append(_new_matrix[j] * binder + _new_matrix[i]).append(
                     _new_matrix[i + 1:])
-                print(_new_matrix)
+                # print(_new_matrix)
         return _new_matrix
 
     def get_algebraic_completion(self, position: Tuple[int, int]):
